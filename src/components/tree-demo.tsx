@@ -1,6 +1,6 @@
 import { Canvas } from "@react-three/fiber"
 import { CameraControls, OrbitControls } from "@react-three/drei" // 1. Import the controls
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import GeoJsonLayer from "./geojson-line"
 import fieldData from "../assets/inverterJson.json"
 import { Button } from "./ui/button"
@@ -8,36 +8,12 @@ import { Vector3 } from "three"
 import { Physics, RigidBody } from "@react-three/rapier"
 import { ExcavatorModel } from "./excavator-model"
 
-function Box({ origin = [0, 0, 0], movement }) {
-  const body = useRef(null)
-
-  useEffect(() => {
-    if (!body.current) return
-    const next = new Vector3(...origin)
-    body.current.setNextKinematicTranslation(next)
-  }, [origin, movement])
-
-  return (
-    <RigidBody
-      ref={body}
-      // position={[0, 0, 0]}
-      type="kinematicPosition"
-      colliders="cuboid"
-    >
-      <mesh>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="lightgreen" />
-      </mesh>
-    </RigidBody>
-  )
-}
-
 function FieldBox({ width, height, depth, setBoxO, fieldCenter }) {
   return (
     <mesh
       onClick={(e) => {
         const {
-          point: { x, y, z },
+          point: { x, z },
         } = e
         setBoxO([
           fieldCenter[0] + width / 2 + x,
@@ -81,25 +57,12 @@ const TreeDemo = () => {
   })
   const [message, setMessage] = useState("")
   const [index, setIndex] = useState(0)
-  const controllerRef = useRef()
+  const controllerRef = useRef(null)
   const [boxO, setBoxO] = useState([0, 0, 0])
   const [sceneOffset, setSceneOffset] = useState([0, 0, 0])
-  const [gridPosition, setGridPosition] = useState([1, 1, 1])
   const usefulData = fieldData.features.filter(
     (d) => d.geometry.coordinates[0][2] !== 0
   )
-
-  const getAverage = (arr) => {
-    if (arr.length === 0) return 0
-    return arr.reduce((a, b) => a + b) / arr.length
-  }
-
-  const fieldAverages = {
-    x:
-      getAverage(usefulData.map((d) => d.geometry.coordinates[1][0])) - 2410000,
-    y: Math.max(...usefulData.map((d) => d.geometry.coordinates[1][2])),
-    z: getAverage(usefulData.map((d) => d.geometry.coordinates[1][1])) - 300000,
-  }
 
   const fieldEdges = {
     min: {
@@ -149,23 +112,20 @@ const TreeDemo = () => {
   }
 
   const updatePos = () => {
-    setGridPosition([fieldAverages.x, fieldAverages.y, fieldAverages.z])
     const data = usefulData[index]
-    const [xi, yi, zi] = data?.geometry?.coordinates[0]
-    const [xo, yo, zo] = data?.geometry?.coordinates[1]
+    const [xi, yi, zi] = data?.geometry?.coordinates[0] || [0, 0, 0]
+    const [xo, yo, zo] = data?.geometry?.coordinates[1] || [0, 0, 0]
     setSceneOffset([-xi + 2410000, -zi, -yi + 300000])
     setMessage(
       JSON.stringify({ index, coordss: [xi, yi, zi, xo, yo, zo] }, null, 2)
     )
+    // @ts-expect-error no ts values
+
     controllerRef.current?.setLookAt(0, 5, 10, 0, 0, 0, true)
   }
 
   const handleButton = () => {
     setIndex((i) => (i < usefulData.length - 1 ? i + 1 : 0))
-    updatePos()
-  }
-  const handle10xButton = () => {
-    setIndex((i) => (i < usefulData.length - 10 ? i + 10 : 0))
     updatePos()
   }
 
@@ -207,14 +167,14 @@ const TreeDemo = () => {
           intensity={Math.PI}
         />
         <OrbitControls makeDefault />
-        <group position={sceneOffset}>
+        <group position={new Vector3(...sceneOffset)}>
           <axesHelper />
           <GeoJsonLayer data={{ features: usefulData }} lineWidth={2} />
           <Physics colliders="cuboid">
             <ExcavatorModel movement={movement} position={boxO} />
             {/* <Box origin={boxO} movement={movement} /> */}
             <RigidBody
-              position={fieldCenter}
+              position={new Vector3(...fieldCenter)}
               gravityScale={0}
               type="fixed"
               sensor
