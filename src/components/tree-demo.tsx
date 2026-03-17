@@ -7,6 +7,21 @@ import { Button } from "./ui/button"
 import { Vector3 } from "three"
 import { Physics, RigidBody } from "@react-three/rapier"
 import { ExcavatorModel } from "./excavator-model"
+import { Vermeer } from "./vermeer"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+const items = [
+  { label: "Trencher", value: "trencher" },
+  { label: "Excavator", value: "excavator" },
+]
 
 function FieldBox({ width, height, depth, setBoxO, fieldCenter }) {
   return (
@@ -60,6 +75,7 @@ const TreeDemo = () => {
   const controllerRef = useRef(null)
   const [boxO, setBoxO] = useState([0, 0, 0])
   const [sceneOffset, setSceneOffset] = useState([0, 0, 0])
+  const [vehicle, setVehicle] = useState("trencher")
   const usefulData = fieldData.features.filter(
     (d) => d.geometry.coordinates[0][2] !== 0
   )
@@ -132,6 +148,25 @@ const TreeDemo = () => {
   return (
     <div className="h-screen bg-gray-900 font-bold text-gray-300">
       <div className="absolute z-10 p-4">
+        <Select
+          items={items}
+          value={vehicle}
+          onValueChange={(v) => setVehicle(v)}
+        >
+          <SelectTrigger className="w-full max-w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Vehicles</SelectLabel>
+              {items.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
         <MovementInput
           title="boom"
           movement={movement}
@@ -156,7 +191,7 @@ const TreeDemo = () => {
         <br />
         <Button onClick={handleButton}>Inverter</Button>
         {/* <Button onClick={handle10xButton}>+10</Button> */}
-        <pre className="text-xs">{message}</pre>
+        {/* <pre className="text-xs">{message}</pre> */}
       </div>
       <Canvas>
         <ambientLight intensity={Math.PI / 2} />
@@ -164,14 +199,18 @@ const TreeDemo = () => {
         <pointLight
           position={[+100, +100, +100]}
           decay={0}
-          intensity={Math.PI}
+          intensity={vehicle === "trencher" ? 100 : 5}
         />
         <OrbitControls makeDefault />
         <group position={new Vector3(...sceneOffset)}>
           <axesHelper />
           <GeoJsonLayer data={{ features: usefulData }} lineWidth={2} />
           <Physics colliders="cuboid">
-            <ExcavatorModel movement={movement} position={boxO} />
+            {vehicle === "excavator" && (
+              <ExcavatorModel movement={movement} position={boxO} />
+            )}
+            {vehicle === "trencher" && <Vermeer position={boxO} />}
+
             {/* <Box origin={boxO} movement={movement} /> */}
             <RigidBody
               position={new Vector3(...fieldCenter)}

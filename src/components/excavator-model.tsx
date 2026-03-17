@@ -3,6 +3,8 @@ import { RigidBody } from "@react-three/rapier"
 import { useEffect, useRef } from "react"
 import { Vector3 } from "three"
 
+// useGLTF.preload("/Excavator Simple.glb")
+
 export function ExcavatorModel({
   movement = { stick: 0, boom: 0, base: 0, bucket: 0 },
   position = [0, 0, 0],
@@ -46,5 +48,3 @@ export function ExcavatorModel({
     </RigidBody>
   )
 }
-
-useGLTF.preload("/Excavator Simple.glb")
